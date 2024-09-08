@@ -3,411 +3,456 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Ludo Game</title>
+    <title>Retro Pac-Man</title>
     <style>
-        /* CSS styles */
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f0f0;
-        }
-        #game-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        #board {
-            width: 800px;
-            height: 800px;
-            background-color: #fff;
-            border: 2px solid #000;
-            position: relative;
-        }
-        .cell {
-            width: 50px;
-            height: 50px;
-            border: 1px solid #ccc;
-            position: absolute;
-        }
-        .piece {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            position: absolute;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .piece:hover {
-            transform: scale(1.1);
-        }
-        .piece.selected {
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-        }
-        #dice {
-            width: 80px;
-            height: 80px;
-            background-color: #fff;
-            border: 2px solid #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 32px;
-            cursor: pointer;
-            margin: 20px;
-            transition: transform 0.3s ease;
-        }
-        #dice:hover {
-            transform: scale(1.1);
-        }
-        #menu, #settings, #history-drawer {
-            position: fixed;
-            top: 0;
-            left: -300px;
-            width: 300px;
-            height: 100%;
-            background-color: #fff;
-            transition: left 0.3s ease;
-            padding: 20px;
-            box-sizing: border-box;
-            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.2);
-        }
-        #menu.open, #settings.open, #history-drawer.open {
-            left: 0;
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #4CAF50;
+            background-color: #000;
             color: #fff;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+        #gameCanvas {
+            border: 2px solid #fff;
+        }
+        .menu-button {
+            background-color: #ff0;
+            color: #000;
             border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
         }
-        button:hover {
-            background-color: #45a049;
-        }
-        #guidance {
-            position: fixed;
-            bottom: 20px;
+        #notification {
+            position: absolute;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.7);
             color: #fff;
             padding: 10px;
-            border-radius: 4px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        #guidance.show {
-            opacity: 1;
-        }
-        @keyframes roll {
-            0% { transform: rotateX(0deg) rotateY(0deg); }
-            100% { transform: rotateX(720deg) rotateY(720deg); }
-        }
-        #instructions {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            max-width: 300px;
-            text-align: justify;
-        }
-        #instructions h2 {
-            margin-top: 0;
-        }
-        #instructions ul {
-            padding-left: 20px;
+            font-size: 18px;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="board"></div>
-        <div id="dice" onclick="rollDice()">Roll</div>
+    <div id="mainMenu">
+        <h1>Retro Pac-Man</h1>
+        <button class="menu-button" onclick="startGame('classic')">Classic Mode</button>
+        <button class="menu-button" onclick="startGame('reverse')">Reverse Mode</button>
+        <button class="menu-button" onclick="toggleModeMenu()">Mode Options</button>
+        <div id="modeMenu" style="display: none;">
+            <button class="menu-button" onclick="setMode('arcade')">Arcade</button>
+            <button class="menu-button" onclick="setMode('random')">Random</button>
+        </div>
     </div>
-    <div id="menu">
-        <button onclick="startGame('classic')">Classic Mode</button>
-        <button onclick="startGame('quick')">Quick Play</button>
-        <button onclick="openSettings()">Settings</button>
-        <button onclick="openHistoryDrawer()">Game History</button>
-    </div>
-    <div id="settings">
-        <h2>Settings</h2>
-        <label>
-            <input type="checkbox" id="power-ups"> Enable Power-ups
-        </label>
-        <button onclick="saveSettings()">Save</button>
-    </div>
-    <div id="history-drawer">
-        <h2>Game History</h2>
-        <ul id="history-list"></ul>
-    </div>
-    <div id="guidance"></div>
-    <div id="instructions">
-        <h2>Instructions</h2>
-        <ul>
-            <li>Click the dice to roll and start the game.</li>
-            <li>Select a piece to move by clicking on it.</li>
-            <li>Click on the board to move the selected piece.</li>
-            <li>A piece can only move if the dice value is 6 or if it has already started.</li>
-            <li>If a piece lands on a cell occupied by an opponent's piece, the opponent's piece is captured and returns to the starting position.</li>
-            <li>The first player to move all their pieces to the home column wins the game.</li>
-        </ul>
-    </div>
+    <div id="notification"></div>
+    <canvas id="gameCanvas" width="400" height="400" style="display: none;"></canvas>
 
     <script>
-        // JavaScript code
-        const board = document.getElementById('board');
-        const dice = document.getElementById('dice');
-        const menu = document.getElementById('menu');
-        const settings = document.getElementById('settings');
-        const historyDrawer = document.getElementById('history-drawer');
-        const historyList = document.getElementById('history-list');
-        const guidance = document.getElementById('guidance');
+        let canvas, ctx, gameMode, subMode;
+        const cellSize = 20;
+        const mazeWidth = 20;
+        const mazeHeight = 20;
+        let maze = [];
+        let player = { x: 1, y: 1, direction: 'right' };
+        let ghosts = [];
+        let powerUps = [];
+        let invincibilityTimer = 0;
+        let stealthMode = false;
+        let bossMode = false;
+        let gameInterval;
+        const gameSpeed = 100; // Adjust this value to change the game speed
 
-        let gameMode = 'classic';
-        let currentPlayer = 0;
-        let players = [
-            { color: 'red', pieces: [0, 0, 0, 0], startIndex: 0 },
-            { color: 'blue', pieces: [0, 0, 0, 0], startIndex: 13 },
-            { color: 'green', pieces: [0, 0, 0, 0], startIndex: 26 },
-            { color: 'yellow', pieces: [0, 0, 0, 0], startIndex: 39 }
-        ];
-        let powerUpsEnabled = false;
-        let gameHistory = [];
-
-        const path = [
-            [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [7, 8], [8, 7], [8, 6], [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
-            [9, 0], [10, 0], [11, 0], [12, 0], [13, 0], [14, 0], [15, 1], [15, 2], [15, 3], [15, 4], [15, 5], [15, 6], [15, 7], [15, 8],
-            [14, 9], [14, 10], [14, 11], [14, 12], [14, 13], [14, 14], [14, 15], [13, 15], [12, 15], [11, 15], [10, 15], [9, 15], [8, 15],
-            [7, 15], [6, 15], [5, 15], [4, 15], [3, 15], [2, 15], [1, 15], [0, 14], [0, 13], [0, 12], [0, 11], [0, 10], [0, 9], [0, 8],
-            [1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7], [8, 8], [9, 9]
-        ];
-
-        function createBoard() {
-            for (let i = 0; i < 16; i++) {
-                for (let j = 0; j < 16; j++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    cell.style.left = `${j * 50}px`;
-                    cell.style.top = `${i * 50}px`;
-                    board.appendChild(cell);
-                }
-            }
+        function toggleModeMenu() {
+            const modeMenu = document.getElementById('modeMenu');
+            modeMenu.style.display = modeMenu.style.display === 'none' ? 'block' : 'none';
         }
 
-        function createPieces() {
-            players.forEach((player, index) => {
-                player.pieces.forEach((_, pieceIndex) => {
-                    const piece = document.createElement('div');
-                    piece.className = 'piece';
-                    piece.style.backgroundColor = player.color;
-                    piece.style.left = `${(index % 2) * 750 + 10}px`;
-                    piece.style.top = `${Math.floor(index / 2) * 750 + 10}px`;
-                    piece.addEventListener('click', () => selectPiece(index, pieceIndex));
-                    board.appendChild(piece);
-                });
-            });
+        function setMode(mode) {
+            subMode = mode;
+            toggleModeMenu();
         }
 
         function startGame(mode) {
             gameMode = mode;
-            menu.classList.remove('open');
-            board.innerHTML = '';
-            createBoard();
-            createPieces();
-            currentPlayer = 0;
-            players.forEach(player => player.pieces = [0, 0, 0, 0]);
-            gameHistory = [];
-            updateTurn();
-            showGuidance('Click the dice to roll and start the game.');
+            document.getElementById('mainMenu').style.display = 'none';
+            canvas = document.getElementById('gameCanvas');
+            canvas.style.display = 'block';
+            ctx = canvas.getContext('2d');
+            initGame();
+            gameInterval = setInterval(gameLoop, gameSpeed);
         }
 
-        let diceValue = 0;
-        let canRoll = true;
-        let selectedPiece = null;
+        function initGame() {
+            generateMaze();
+            initPlayer();
+            initGhosts();
+            initPowerUps();
+            setupControls();
+        }
 
-        function rollDice() {
-            if (!canRoll) return;
-            diceValue = Math.floor(Math.random() * 6) + 1;
-            dice.textContent = diceValue;
-            dice.style.animation = 'roll 0.5s';
-            canRoll = false;
-            setTimeout(() => {
-                dice.style.animation = '';
-                if (diceValue !== 6) {
-                    nextTurn();
+        function generateMaze() {
+            // Implement a more complex maze generation algorithm
+            maze = [];
+            for (let y = 0; y < mazeHeight; y++) {
+                maze[y] = [];
+                for (let x = 0; x < mazeWidth; x++) {
+                    maze[y][x] = (x === 0 || x === mazeWidth - 1 || y === 0 || y === mazeHeight - 1) ? 1 : 0;
                 }
-                showGuidance('Select a piece to move.');
-            }, 500);
-        }
-
-        function selectPiece(playerIndex, pieceIndex) {
-            if (playerIndex !== currentPlayer || !canMovePiece(playerIndex, pieceIndex)) return;
-            if (selectedPiece) {
-                selectedPiece.classList.remove('selected');
             }
-            selectedPiece = board.children[players.length * 4 + playerIndex * 4 + pieceIndex];
-            selectedPiece.classList.add('selected');
-            showGuidance('Click the board to move the selected piece.');
-        }
 
-        function canMovePiece(playerIndex, pieceIndex) {
-            const piece = players[playerIndex].pieces[pieceIndex];
-            return (piece === 0 && diceValue === 6) || (piece > 0 && piece + diceValue <= 72);
-        }
+            // Add some walls
+            for (let i = 1; i < mazeWidth - 1; i++) {
+                if (i % 2 === 0) {
+                    maze[Math.floor(mazeHeight / 2)][i] = 1;
+                }
+            }
 
-        function movePiece() {
-            if (!selectedPiece) return;
-            const index = Array.from(board.children).indexOf(selectedPiece);
-            const playerIndex = Math.floor((index - players.length * 4) / 4);
-            const pieceIndex = (index - players.length * 4) % 4;
-            const newPosition = players[playerIndex].pieces[pieceIndex] + diceValue;
-            if (newPosition <= 72) {
-                players[playerIndex].pieces[pieceIndex] = newPosition;
-                updatePiecePosition(playerIndex, pieceIndex);
-                checkForCapture(playerIndex, pieceIndex);
-                if (newPosition === 72) {
-                    endGame(playerIndex);
+            // Add shifting patterns
+            for (let i = 1; i < mazeHeight - 1; i++) {
+                if (i % 4 === 0) {
+                    maze[i][Math.floor(mazeWidth / 2)] = 1;
                 }
-                selectedPiece.classList.remove('selected');
-                selectedPiece = null;
-                saveGameState();
-                if (diceValue !== 6) {
-                    nextTurn();
-                }
-                showGuidance('Roll the dice for the next turn.');
             }
         }
 
-        function updatePiecePosition(playerIndex, pieceIndex) {
-            const piece = board.children[players.length * 4 + playerIndex * 4 + pieceIndex];
-            const position = calculatePosition(players[playerIndex].pieces[pieceIndex], playerIndex);
-            piece.style.left = `${position.x}px`;
-            piece.style.top = `${position.y}px`;
+        function initPlayer() {
+            player = { x: 1, y: 1, direction: 'right' };
         }
 
-        function calculatePosition(steps, playerIndex) {
-            const adjustedSteps = (steps + players[playerIndex].startIndex) % 68;
-            const [x, y] = path[adjustedSteps];
-            return { x: x * 50 + 5, y: y * 50 + 5 };
+        function initGhosts() {
+            ghosts = [
+                { x: mazeWidth - 2, y: 1, color: 'red', originalColor: 'red' },
+                { x: 1, y: mazeHeight - 2, color: 'pink', originalColor: 'pink' },
+                { x: mazeWidth - 2, y: mazeHeight - 2, color: 'cyan', originalColor: 'cyan' }
+            ];
         }
 
-        function checkForCapture(playerIndex, pieceIndex) {
-            const currentPosition = players[playerIndex].pieces[pieceIndex];
-            players.forEach((player, index) => {
-                if (index !== playerIndex) {
-                    player.pieces.forEach((position, idx) => {
-                        if (position === currentPosition) {
-                            player.pieces[idx] = 0;
-                            updatePiecePosition(index, idx);
+        function initPowerUps() {
+            powerUps = [
+                { x: 5, y: 5, type: 'hypnosis' },
+                { x: 15, y: 15, type: 'rotation' },
+                { x: 10, y: 10, type: 'invincibility' }
+            ];
+        }
+
+        function setupControls() {
+            document.addEventListener('keydown', handleKeyPress);
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+        }
+
+        function handleKeyPress(e) {
+            switch (e.key) {
+                case 'ArrowUp': player.direction = 'up'; break;
+                case 'ArrowDown': player.direction = 'down'; break;
+                case 'ArrowLeft': player.direction = 'left'; break;
+                case 'ArrowRight': player.direction = 'right'; break;
+                case 's': toggleStealthMode(); break;
+                case 'b': toggleBossMode(); break;
+            }
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            const dx = x - (player.x * cellSize + cellSize / 2);
+            const dy = y - (player.y * cellSize + cellSize / 2);
+            if (Math.abs(dx) > Math.abs(dy)) {
+                player.direction = dx > 0 ? 'right' : 'left';
+            } else {
+                player.direction = dy > 0 ? 'down' : 'up';
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+        }
+
+        function update() {
+            if (gameMode === 'classic') {
+                movePlayer();
+                moveGhosts();
+            } else if (gameMode === 'reverse') {
+                moveGhosts();
+                movePlayer();
+            }
+            checkCollisions();
+            updatePowerUps();
+            updateInvincibility();
+        }
+
+        function movePlayer() {
+            let newX = player.x;
+            let newY = player.y;
+            switch (player.direction) {
+                case 'up': newY--; break;
+                case 'down': newY++; break;
+                case 'left': newX--; break;
+                case 'right': newX++; break;
+            }
+            if (maze[newY][newX] === 0) {
+                player.x = newX;
+                player.y = newY;
+            }
+        }
+
+        function moveGhosts() {
+            // Implement ghost AI for different modes
+            if (gameMode === 'classic') {
+                ghosts.forEach(ghost => {
+                    if (!ghost.hypnotized) {
+                        const directions = ['up', 'down', 'left', 'right'];
+                        const validMoves = directions.filter(dir => {
+                            let newX = ghost.x;
+                            let newY = ghost.y;
+                            switch (dir) {
+                                case 'up': newY--; break;
+                                case 'down': newY++; break;
+                                case 'left': newX--; break;
+                                case 'right': newX++; break;
+                            }
+                            return maze[newY][newX] === 0;
+                        });
+                        if (validMoves.length > 0) {
+                            const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+                            switch (move) {
+                                case 'up': ghost.y--; break;
+                                case 'down': ghost.y++; break;
+                                case 'left': ghost.x--; break;
+                                case 'right': ghost.x++; break;
+                            }
                         }
-                    });
+                    }
+                });
+            } else if (gameMode === 'reverse') {
+                // Player controls the ghosts in reverse mode
+                ghosts.forEach((ghost, index) => {
+                    let newX = ghost.x;
+                    let newY = ghost.y;
+                    switch (index) {
+                        case 0: // Arrow keys for the first ghost
+                            switch (player.direction) {
+                                case 'up': newY--; break;
+                                case 'down': newY++; break;
+                                case 'left': newX--; break;
+                                case 'right': newX++; break;
+                            }
+                            break;
+                        case 1: // WASD keys for the second ghost
+                            switch (player.direction) {
+                                case 'up': newY++; break;
+                                case 'down': newY--; break;
+                                case 'left': newX++; break;
+                                case 'right': newX--; break;
+                            }
+                            break;
+                        case 2: // IJKL keys for the third ghost
+                            switch (player.direction) {
+                                case 'up': newX++; break;
+                                case 'down': newX--; break;
+                                case 'left': newY--; break;
+                                case 'right': newY++; break;
+                            }
+                            break;
+                    }
+                    if (maze[newY][newX] === 0) {
+                        ghost.x = newX;
+                        ghost.y = newY;
+                    }
+                });
+            }
+        }
+
+        function checkCollisions() {
+            // Check ghost collisions
+            ghosts.forEach(ghost => {
+                if (ghost.x === player.x && ghost.y === player.y) {
+                    if (invincibilityTimer > 0) {
+                        // Player is invincible, remove the ghost
+                        const ghostIndex = ghosts.indexOf(ghost);
+                        ghosts.splice(ghostIndex, 1);
+                    } else {
+                        showNotification('Game Over!');
+                        endGame();
+                    }
                 }
             });
-        }
 
-        function nextTurn() {
-            currentPlayer = (currentPlayer + 1) % players.length;
-            updateTurn();
-            canRoll = true;
-            showGuidance(`Player ${currentPlayer + 1}'s turn. Roll the dice.`);
-        }
-
-        function updateTurn() {
-            dice.style.backgroundColor = players[currentPlayer].color;
-        }
-
-        function openSettings() {
-            settings.classList.add('open');
-        }
-
-        function saveSettings() {
-            powerUpsEnabled = document.getElementById('power-ups').checked;
-            settings.classList.remove('open');
-        }
-
-        function openHistoryDrawer() {
-            historyDrawer.classList.add('open');
-            displayGameHistory();
-        }
-
-        function saveGameState() {
-            const gameState = {
-                mode: gameMode,
-                players: players.map(player => ({ ...player })),
-                currentPlayer: currentPlayer
-            };
-            gameHistory.push(gameState);
-        }
-
-        function displayGameHistory() {
-            historyList.innerHTML = '';
-            gameHistory.forEach((state, index) => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `Game ${index + 1} - Mode: ${state.mode}, Current Player: ${state.currentPlayer + 1}`;
-                historyList.appendChild(listItem);
+            // Check power-up collisions
+            powerUps = powerUps.filter(powerUp => {
+                if (powerUp.x === player.x && powerUp.y === player.y) {
+                    applyPowerUp(powerUp.type);
+                    return false;
+                }
+                return true;
             });
         }
 
-        function endGame(winningPlayerIndex) {
-            alert(`Player ${winningPlayerIndex + 1} wins!`);
-            startGame(gameMode);
+        function applyPowerUp(type) {
+            switch (type) {
+                case 'hypnosis':
+                    showNotification('Ghost Hypnosis activated!');
+                    hypnotizeGhosts();
+                    break;
+                case 'rotation':
+                    showNotification('Maze Rotation activated!');
+                    rotateMaze();
+                    break;
+                case 'invincibility':
+                    showNotification('Invincibility activated!');
+                    activateInvincibility();
+                    break;
+            }
         }
 
-        function showGuidance(message) {
-            guidance.textContent = message;
-            guidance.classList.add('show');
+        function hypnotizeGhosts() {
+            // Implement ghost hypnosis effect
+            ghosts.forEach(ghost => {
+                ghost.hypnotized = true;
+                ghost.color = 'purple';
+            });
             setTimeout(() => {
-                guidance.classList.remove('show');
-            }, 3000);
+                ghosts.forEach(ghost => {
+                    ghost.hypnotized = false;
+                    ghost.color = ghost.originalColor;
+                });
+            }, 5000);
         }
 
-        // Touch and mouse event listeners
-        board.addEventListener('touchstart', handleTouch);
-        board.addEventListener('mousedown', handleClick);
-        board.addEventListener('touchend', handleTouchEnd);
-        board.addEventListener('mouseup', handleMouseUp);
+        function rotateMaze() {
+            const newMaze = [];
+            for (let y = 0; y < mazeWidth; y++) {
+                newMaze[y] = [];
+                for (let x = 0; x < mazeHeight; x++) {
+                    newMaze[y][x] = maze[mazeHeight - 1 - x][y];
+                }
+            }
+            maze = newMaze;
+        }
 
-        function handleTouch(event) {
-            const touch = event.touches[0];
-            const element = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (element.classList.contains('piece')) {
-                const index = Array.from(board.children).indexOf(element);
-const playerIndex = Math.floor((index - players.length * 4) / 4);
-                const pieceIndex = (index - players.length * 4) % 4;
-                selectPiece(playerIndex, pieceIndex);
+        function activateInvincibility() {
+            invincibilityTimer = 10;
+        }
+
+        function updateInvincibility() {
+            if (invincibilityTimer > 0) {
+                invincibilityTimer--;
             }
         }
 
-        function handleClick(event) {
-            if (event.target.classList.contains('piece')) {
-                const index = Array.from(board.children).indexOf(event.target);
-                const playerIndex = Math.floor((index - players.length * 4) / 4);
-                const pieceIndex = (index - players.length * 4) % 4;
-                selectPiece(playerIndex, pieceIndex);
+        function updatePowerUps() {
+            // Respawn power-ups if needed
+            if (powerUps.length === 0) {
+                initPowerUps();
             }
         }
 
-        function handleTouchEnd(event) {
-            movePiece();
+        function toggleStealthMode() {
+            stealthMode = !stealthMode;
+            showNotification(`Stealth Mode ${stealthMode ? 'activated' : 'deactivated'}`);
         }
 
-        function handleMouseUp(event) {
-            movePiece();
+        function toggleBossMode() {
+            bossMode = !bossMode;
+            showNotification(`Boss Mode ${bossMode ? 'activated' : 'deactivated'}`);
+            if (bossMode) {
+                spawnBoss();
+            } else {
+                removeBoss();
+            }
         }
 
-        // Initialize the game
-        menu.classList.add('open');
+        function spawnBoss() {
+            // Implement boss spawning logic
+            const bossGhost = {
+                x: Math.floor(mazeWidth / 2),
+                y: Math.floor(mazeHeight / 2),
+                color: 'orange',
+                size: 2
+            };
+            ghosts.push(bossGhost);
+        }
+
+        function removeBoss() {
+            // Remove the boss ghost
+            ghosts = ghosts.filter(ghost => ghost.size !== 2);
+        }
+
+        function showNotification(text) {
+            const notification = document.getElementById('notification');
+            notification.textContent = text;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            showMainMenu();
+        }
+
+        function showMainMenu() {
+            document.getElementById('mainMenu').style.display = 'block';
+            canvas.style.display = 'none';
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawMaze();
+            drawPlayer();
+            drawGhosts();
+            drawPowerUps();
+        }
+
+        function drawMaze() {
+            ctx.fillStyle = '#00f';
+            for (let y = 0; y < mazeHeight; y++) {
+                for (let x = 0; x < mazeWidth; x++) {
+                    if (maze[y][x] === 1) {
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+        }
+
+        function drawPlayer() {
+            if (!stealthMode) {
+                ctx.fillStyle = invincibilityTimer > 0 ? '#ff8' : '#ff0';
+                ctx.beginPath();
+                ctx.arc(player.x * cellSize + cellSize / 2, player.y * cellSize + cellSize / 2, cellSize / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawGhosts() {
+ghosts.forEach(ghost => {
+                ctx.fillStyle = ghost.color;
+                ctx.fillRect(ghost.x * cellSize, ghost.y * cellSize, cellSize * (ghost.size || 1), cellSize * (ghost.size || 1));
+            });
+        }
+
+        function drawPowerUps() {
+            powerUps.forEach(powerUp => {
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(powerUp.x * cellSize + cellSize / 2, powerUp.y * cellSize + cellSize / 2, cellSize / 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
     </script>
 </body>
 </html>
