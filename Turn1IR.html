@@ -1,1 +1,413 @@
-T1IR
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Ludo Game</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #board {
+            width: 800px;
+            height: 800px;
+            background-color: #fff;
+            border: 2px solid #000;
+            position: relative;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #ccc;
+            position: absolute;
+        }
+        .piece {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .piece:hover {
+            transform: scale(1.1);
+        }
+        .piece.selected {
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+        #dice {
+            width: 80px;
+            height: 80px;
+            background-color: #fff;
+            border: 2px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            cursor: pointer;
+            margin: 20px;
+            transition: transform 0.3s ease;
+        }
+        #dice:hover {
+            transform: scale(1.1);
+        }
+        #menu, #settings, #history-drawer {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background-color: #fff;
+            transition: left 0.3s ease;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.2);
+        }
+        #menu.open, #settings.open, #history-drawer.open {
+            left: 0;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #guidance {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #guidance.show {
+            opacity: 1;
+        }
+        @keyframes roll {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            100% { transform: rotateX(720deg) rotateY(720deg); }
+        }
+        #instructions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            max-width: 300px;
+            text-align: justify;
+        }
+        #instructions h2 {
+            margin-top: 0;
+        }
+        #instructions ul {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="board"></div>
+        <div id="dice" onclick="rollDice()">Roll</div>
+    </div>
+    <div id="menu">
+        <button onclick="startGame('classic')">Classic Mode</button>
+        <button onclick="startGame('quick')">Quick Play</button>
+        <button onclick="openSettings()">Settings</button>
+        <button onclick="openHistoryDrawer()">Game History</button>
+    </div>
+    <div id="settings">
+        <h2>Settings</h2>
+        <label>
+            <input type="checkbox" id="power-ups"> Enable Power-ups
+        </label>
+        <button onclick="saveSettings()">Save</button>
+    </div>
+    <div id="history-drawer">
+        <h2>Game History</h2>
+        <ul id="history-list"></ul>
+    </div>
+    <div id="guidance"></div>
+    <div id="instructions">
+        <h2>Instructions</h2>
+        <ul>
+            <li>Click the dice to roll and start the game.</li>
+            <li>Select a piece to move by clicking on it.</li>
+            <li>Click on the board to move the selected piece.</li>
+            <li>A piece can only move if the dice value is 6 or if it has already started.</li>
+            <li>If a piece lands on a cell occupied by an opponent's piece, the opponent's piece is captured and returns to the starting position.</li>
+            <li>The first player to move all their pieces to the home column wins the game.</li>
+        </ul>
+    </div>
+
+    <script>
+        // JavaScript code
+        const board = document.getElementById('board');
+        const dice = document.getElementById('dice');
+        const menu = document.getElementById('menu');
+        const settings = document.getElementById('settings');
+        const historyDrawer = document.getElementById('history-drawer');
+        const historyList = document.getElementById('history-list');
+        const guidance = document.getElementById('guidance');
+
+        let gameMode = 'classic';
+        let currentPlayer = 0;
+        let players = [
+            { color: 'red', pieces: [0, 0, 0, 0], startIndex: 0 },
+            { color: 'blue', pieces: [0, 0, 0, 0], startIndex: 13 },
+            { color: 'green', pieces: [0, 0, 0, 0], startIndex: 26 },
+            { color: 'yellow', pieces: [0, 0, 0, 0], startIndex: 39 }
+        ];
+        let powerUpsEnabled = false;
+        let gameHistory = [];
+
+        const path = [
+            [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [7, 8], [8, 7], [8, 6], [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
+            [9, 0], [10, 0], [11, 0], [12, 0], [13, 0], [14, 0], [15, 1], [15, 2], [15, 3], [15, 4], [15, 5], [15, 6], [15, 7], [15, 8],
+            [14, 9], [14, 10], [14, 11], [14, 12], [14, 13], [14, 14], [14, 15], [13, 15], [12, 15], [11, 15], [10, 15], [9, 15], [8, 15],
+            [7, 15], [6, 15], [5, 15], [4, 15], [3, 15], [2, 15], [1, 15], [0, 14], [0, 13], [0, 12], [0, 11], [0, 10], [0, 9], [0, 8],
+            [1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7], [8, 8], [9, 9]
+        ];
+
+        function createBoard() {
+            for (let i = 0; i < 16; i++) {
+                for (let j = 0; j < 16; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.style.left = `${j * 50}px`;
+                    cell.style.top = `${i * 50}px`;
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function createPieces() {
+            players.forEach((player, index) => {
+                player.pieces.forEach((_, pieceIndex) => {
+                    const piece = document.createElement('div');
+                    piece.className = 'piece';
+                    piece.style.backgroundColor = player.color;
+                    piece.style.left = `${(index % 2) * 750 + 10}px`;
+                    piece.style.top = `${Math.floor(index / 2) * 750 + 10}px`;
+                    piece.addEventListener('click', () => selectPiece(index, pieceIndex));
+                    board.appendChild(piece);
+                });
+            });
+        }
+
+        function startGame(mode) {
+            gameMode = mode;
+            menu.classList.remove('open');
+            board.innerHTML = '';
+            createBoard();
+            createPieces();
+            currentPlayer = 0;
+            players.forEach(player => player.pieces = [0, 0, 0, 0]);
+            gameHistory = [];
+            updateTurn();
+            showGuidance('Click the dice to roll and start the game.');
+        }
+
+        let diceValue = 0;
+        let canRoll = true;
+        let selectedPiece = null;
+
+        function rollDice() {
+            if (!canRoll) return;
+            diceValue = Math.floor(Math.random() * 6) + 1;
+            dice.textContent = diceValue;
+            dice.style.animation = 'roll 0.5s';
+            canRoll = false;
+            setTimeout(() => {
+                dice.style.animation = '';
+                if (diceValue !== 6) {
+                    nextTurn();
+                }
+                showGuidance('Select a piece to move.');
+            }, 500);
+        }
+
+        function selectPiece(playerIndex, pieceIndex) {
+            if (playerIndex !== currentPlayer || !canMovePiece(playerIndex, pieceIndex)) return;
+            if (selectedPiece) {
+                selectedPiece.classList.remove('selected');
+            }
+            selectedPiece = board.children[players.length * 4 + playerIndex * 4 + pieceIndex];
+            selectedPiece.classList.add('selected');
+            showGuidance('Click the board to move the selected piece.');
+        }
+
+        function canMovePiece(playerIndex, pieceIndex) {
+            const piece = players[playerIndex].pieces[pieceIndex];
+            return (piece === 0 && diceValue === 6) || (piece > 0 && piece + diceValue <= 72);
+        }
+
+        function movePiece() {
+            if (!selectedPiece) return;
+            const index = Array.from(board.children).indexOf(selectedPiece);
+            const playerIndex = Math.floor((index - players.length * 4) / 4);
+            const pieceIndex = (index - players.length * 4) % 4;
+            const newPosition = players[playerIndex].pieces[pieceIndex] + diceValue;
+            if (newPosition <= 72) {
+                players[playerIndex].pieces[pieceIndex] = newPosition;
+                updatePiecePosition(playerIndex, pieceIndex);
+                checkForCapture(playerIndex, pieceIndex);
+                if (newPosition === 72) {
+                    endGame(playerIndex);
+                }
+                selectedPiece.classList.remove('selected');
+                selectedPiece = null;
+                saveGameState();
+                if (diceValue !== 6) {
+                    nextTurn();
+                }
+                showGuidance('Roll the dice for the next turn.');
+            }
+        }
+
+        function updatePiecePosition(playerIndex, pieceIndex) {
+            const piece = board.children[players.length * 4 + playerIndex * 4 + pieceIndex];
+            const position = calculatePosition(players[playerIndex].pieces[pieceIndex], playerIndex);
+            piece.style.left = `${position.x}px`;
+            piece.style.top = `${position.y}px`;
+        }
+
+        function calculatePosition(steps, playerIndex) {
+            const adjustedSteps = (steps + players[playerIndex].startIndex) % 68;
+            const [x, y] = path[adjustedSteps];
+            return { x: x * 50 + 5, y: y * 50 + 5 };
+        }
+
+        function checkForCapture(playerIndex, pieceIndex) {
+            const currentPosition = players[playerIndex].pieces[pieceIndex];
+            players.forEach((player, index) => {
+                if (index !== playerIndex) {
+                    player.pieces.forEach((position, idx) => {
+                        if (position === currentPosition) {
+                            player.pieces[idx] = 0;
+                            updatePiecePosition(index, idx);
+                        }
+                    });
+                }
+            });
+        }
+
+        function nextTurn() {
+            currentPlayer = (currentPlayer + 1) % players.length;
+            updateTurn();
+            canRoll = true;
+            showGuidance(`Player ${currentPlayer + 1}'s turn. Roll the dice.`);
+        }
+
+        function updateTurn() {
+            dice.style.backgroundColor = players[currentPlayer].color;
+        }
+
+        function openSettings() {
+            settings.classList.add('open');
+        }
+
+        function saveSettings() {
+            powerUpsEnabled = document.getElementById('power-ups').checked;
+            settings.classList.remove('open');
+        }
+
+        function openHistoryDrawer() {
+            historyDrawer.classList.add('open');
+            displayGameHistory();
+        }
+
+        function saveGameState() {
+            const gameState = {
+                mode: gameMode,
+                players: players.map(player => ({ ...player })),
+                currentPlayer: currentPlayer
+            };
+            gameHistory.push(gameState);
+        }
+
+        function displayGameHistory() {
+            historyList.innerHTML = '';
+            gameHistory.forEach((state, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `Game ${index + 1} - Mode: ${state.mode}, Current Player: ${state.currentPlayer + 1}`;
+                historyList.appendChild(listItem);
+            });
+        }
+
+        function endGame(winningPlayerIndex) {
+            alert(`Player ${winningPlayerIndex + 1} wins!`);
+            startGame(gameMode);
+        }
+
+        function showGuidance(message) {
+            guidance.textContent = message;
+            guidance.classList.add('show');
+            setTimeout(() => {
+                guidance.classList.remove('show');
+            }, 3000);
+        }
+
+        // Touch and mouse event listeners
+        board.addEventListener('touchstart', handleTouch);
+        board.addEventListener('mousedown', handleClick);
+        board.addEventListener('touchend', handleTouchEnd);
+        board.addEventListener('mouseup', handleMouseUp);
+
+        function handleTouch(event) {
+            const touch = event.touches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (element.classList.contains('piece')) {
+                const index = Array.from(board.children).indexOf(element);
+const playerIndex = Math.floor((index - players.length * 4) / 4);
+                const pieceIndex = (index - players.length * 4) % 4;
+                selectPiece(playerIndex, pieceIndex);
+            }
+        }
+
+        function handleClick(event) {
+            if (event.target.classList.contains('piece')) {
+                const index = Array.from(board.children).indexOf(event.target);
+                const playerIndex = Math.floor((index - players.length * 4) / 4);
+                const pieceIndex = (index - players.length * 4) % 4;
+                selectPiece(playerIndex, pieceIndex);
+            }
+        }
+
+        function handleTouchEnd(event) {
+            movePiece();
+        }
+
+        function handleMouseUp(event) {
+            movePiece();
+        }
+
+        // Initialize the game
+        menu.classList.add('open');
+    </script>
+</body>
+</html>

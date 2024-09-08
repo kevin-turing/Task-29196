@@ -1,1 +1,91 @@
-T1MA
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Retro Pac-Man</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+<style>
+    /* CSS for game UI, retro style */
+    body { background: #000; color: #FFF; font-family: 'Press Start 2P', cursive; }
+    #gameCanvas { border: 1px solid #FFF; }
+    .menu { text-align: center; margin-top: 100px; }
+    .button { background: #FFD700; color: #000; padding: 10px 20px; margin: 10px; cursor: pointer; }
+    .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="mainMenu" class="menu">
+    <h1>Retro Pac-Man</h1>
+    <button class="button" onclick="startGame('classic')">Play Classic</button>
+    <button class="button" onclick="toggleModeMenu()">Mode</button>
+    <div id="modeMenu" class="hidden">
+        <button class="button" onclick="startGame('reverse', 'arcade')">Arcade</button>
+        <button class="button" onclick="startGame('reverse', 'random')">Random</button>
+    </div>
+</div>
+
+<canvas id="gameCanvas" width="800" height="600" style="display: none;"></canvas>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Game logic would go here including canvas setup, game loop, controls, etc.
+    let canvas, ctx, gameState = 'menu';
+
+    function toggleModeMenu() {
+        $('#modeMenu').toggleClass('hidden');
+    }
+
+    function startGame(mode, subMode = 'classic') {
+        $('#mainMenu').hide();
+        $('#gameCanvas').show();
+        canvas = document.getElementById('gameCanvas');
+        ctx = canvas.getContext('2d');
+        // Initialize game with mode and subMode
+        initGame(mode, subMode);
+    }
+
+    function initGame(mode, subMode) {
+        // Setup game based on mode
+        // This function would initialize all game objects, set up controls, etc.
+        gameState = 'playing';
+        setupControls();
+        // Start game loop
+        requestAnimationFrame(gameLoop);
+    }
+
+    function setupControls() {
+        if ('ontouchstart' in document.documentElement) {
+            // Mobile controls setup
+            canvas.addEventListener('touchstart', handleTouchStart, false);
+            canvas.addEventListener('touchmove', handleTouchMove, false);
+        } else {
+            // Desktop controls setup
+            $(document).keydown(function(e) {
+                // Handle arrow key presses
+            });
+        }
+    }
+
+    function handleTouchStart(evt) {
+        // Handle touch start for mobile swipe controls
+    }
+
+    function handleTouchMove(evt) {
+        // Handle touch move for mobile swipe controls
+    }
+
+    function gameLoop() {
+        if (gameState === 'playing') {
+            // Update game state
+            // Draw game state
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    // Here would follow the rest of the game logic, including maze generation, power-ups, ghost AI, etc.
+</script>
+
+</body>
+</html>
