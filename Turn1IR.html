@@ -56,7 +56,7 @@
         const mazeWidth = 20;
         const mazeHeight = 20;
         let maze = [];
-        let player = { x: 1, y: 1, direction: 'right' };
+        let player = { x: 1, y: 1, direction: 'right', color: '#ff0' };
         let ghosts = [];
         let powerUps = [];
         let invincibilityTimer = 0;
@@ -119,7 +119,7 @@
         }
 
         function initPlayer() {
-            player = { x: 1, y: 1, direction: 'right' };
+            player = { x: 1, y: 1, direction: 'right', color: gameMode === 'reverse' ? 'red' : '#ff0' };
         }
 
         function initGhosts() {
@@ -128,6 +128,11 @@
                 { x: 1, y: mazeHeight - 2, color: 'pink', originalColor: 'pink' },
                 { x: mazeWidth - 2, y: mazeHeight - 2, color: 'cyan', originalColor: 'cyan' }
             ];
+
+            if (gameMode === 'reverse') {
+                // Remove the first ghost as the player will take its place
+                ghosts.shift();
+            }
         }
 
         function initPowerUps() {
@@ -180,13 +185,8 @@
         }
 
         function update() {
-            if (gameMode === 'classic') {
-                movePlayer();
-                moveGhosts();
-            } else if (gameMode === 'reverse') {
-                moveGhosts();
-                movePlayer();
-            }
+            movePlayer();
+            moveGhosts();
             checkCollisions();
             updatePowerUps();
             updateInvincibility();
@@ -208,77 +208,46 @@
         }
 
         function moveGhosts() {
-            // Implement ghost AI for different modes
-            if (gameMode === 'classic') {
-                ghosts.forEach(ghost => {
-                    if (!ghost.hypnotized) {
-                        const directions = ['up', 'down', 'left', 'right'];
-                        const validMoves = directions.filter(dir => {
-                            let newX = ghost.x;
-                            let newY = ghost.y;
-                            switch (dir) {
-                                case 'up': newY--; break;
-                                case 'down': newY++; break;
-                                case 'left': newX--; break;
-                                case 'right': newX++; break;
-                            }
-                            return maze[newY][newX] === 0;
-                        });
-                        if (validMoves.length > 0) {
-                            const move = validMoves[Math.floor(Math.random() * validMoves.length)];
-                            switch (move) {
-                                case 'up': ghost.y--; break;
-                                case 'down': ghost.y++; break;
-                                case 'left': ghost.x--; break;
-                                case 'right': ghost.x++; break;
-                            }
+            ghosts.forEach(ghost => {
+                if (!ghost.hypnotized) {
+                    const directions = ['up', 'down', 'left', 'right'];
+                    const validMoves = directions.filter(dir => {
+                        let newX = ghost.x;
+                        let newY = ghost.y;
+                        switch (dir) {
+                            case 'up': newY--; break;
+                            case 'down': newY++; break;
+                            case 'left': newX--; break;
+                            case 'right': newX++; break;
+                        }
+                        return maze[newY][newX] === 0;
+                    });
+                    if (validMoves.length > 0) {
+                        const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+                        switch (move) {
+                            case 'up': ghost.y--; break;
+                            case 'down': ghost.y++; break;
+                            case 'left': ghost.x--; break;
+                            case 'right': ghost.x++; break;
                         }
                     }
-                });
-            } else if (gameMode === 'reverse') {
-                // Player controls the ghosts in reverse mode
-                ghosts.forEach((ghost, index) => {
-                    let newX = ghost.x;
-                    let newY = ghost.y;
-                    switch (index) {
-                        case 0: // Arrow keys for the first ghost
-                            switch (player.direction) {
-                                case 'up': newY--; break;
-                                case 'down': newY++; break;
-                                case 'left': newX--; break;
-                                case 'right': newX++; break;
-                            }
-                            break;
-                        case 1: // WASD keys for the second ghost
-                            switch (player.direction) {
-                                case 'up': newY++; break;
-                                case 'down': newY--; break;
-                                case 'left': newX++; break;
-                                case 'right': newX--; break;
-                            }
-                            break;
-                        case 2: // IJKL keys for the third ghost
-                            switch (player.direction) {
-                                case 'up': newX++; break;
-                                case 'down': newX--; break;
-                                case 'left': newY--; break;
-                                case 'right': newY++; break;
-                            }
-                            break;
-                    }
-                    if (maze[newY][newX] === 0) {
-                        ghost.x = newX;
-                        ghost.y = newY;
-                    }
-                });
-            }
+                }
+            });
         }
 
         function checkCollisions() {
             // Check ghost collisions
             ghosts.forEach(ghost => {
                 if (ghost.x === player.x && ghost.y === player.y) {
-                    if (invincibilityTimer > 0) {
+                    if (gameMode === 'reverse') {
+                        // In reverse mode, player (ghost) eats Pac-Man
+                        const ghostIndex = ghosts.indexOf(ghost);
+                        ghosts.splice(ghostIndex, 1);
+                        if (ghosts.length === 0) {
+                            showNotification('You won! All Pac-Men eaten!');
+                            endGame();
+                        }
+                    } else if (invincibilityTimer > 0) {
                         // Player is invincible, remove the ghost
                         const ghostIndex = ghosts.indexOf(ghost);
                         ghosts.splice(ghostIndex, 1);
@@ -431,15 +400,19 @@
 
         function drawPlayer() {
             if (!stealthMode) {
-                ctx.fillStyle = invincibilityTimer > 0 ? '#ff8' : '#ff0';
-                ctx.beginPath();
-                ctx.arc(player.x * cellSize + cellSize / 2, player.y * cellSize + cellSize / 2, cellSize / 2, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillStyle = player.color;
+                if (gameMode === 'reverse') {
+                    ctx.fillRect(player.x * cellSize, player.y * cellSize, cellSize, cellSize);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(player.x * cellSize + cellSize / 2, player.y * cellSize + cellSize / 2, cellSize / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
 
         function drawGhosts() {
-ghosts.forEach(ghost => {
+            ghosts.forEach(ghost => {
                 ctx.fillStyle = ghost.color;
                 ctx.fillRect(ghost.x * cellSize, ghost.y * cellSize, cellSize * (ghost.size || 1), cellSize * (ghost.size || 1));
             });
